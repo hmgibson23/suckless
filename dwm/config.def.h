@@ -8,11 +8,13 @@
 
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
 static const unsigned int snap      = 32;       /* snap pixel */
-static const unsigned int gappx     = 5;
+static const unsigned int gappx     = 6;
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 static const int focusonwheel       = 1;
-static const char *fonts[]          = { "Hack:pixelsize=12:antialias=true:autohint=true" };
+static const char *fonts[]          = {
+"-wuncon-siji-medium-r-normal--10-100-75-75-c-80-iso10646-1",
+  "Hack:pixelsize=12:antialias=true:autohint=true" };
 static const char dmenufont[]       = "Hack:pixelsize=12:antialias=true:autohint=true";
 static const char col_gray1[]       = "#002b36";
 static const char col_gray2[]       = "#073642";
@@ -41,9 +43,10 @@ static const Rule rules[] = {
     { "VirtualBox",     NULL,       NULL,           1 << 3,     False,      -1 },
     { "Transmission",   NULL,       NULL,           1 << 3,     False,      -1 },
     { "mpv",            "gl",       NULL,           1 << 5,     False,      -1 },
-    { "Slack",           "slack",   NULL,           1 << 2,     False,      -1 },
+    { "Slack",           "slack",   NULL,           1 << 7,     False,      -1 },
     { "Vlc",            "vlc",      NULL,           1 << 5,     False,      -1 },
     { "Emacs",            "emacs",      NULL,           1 << 5,     False,      -1 },
+
 };
 
 /* layout(s) */
@@ -54,8 +57,9 @@ static const int resizehints = 1;    /* 1 means respect size hints in tiled resi
 static const Layout layouts[] = {
 	/* symbol     arrange function */
 	{ "◰",		tile },    /* first entry is default */
-	{ "★",		NULL },    /* no layout function means floating behavior */
 	{ "🀱",		monocle },
+	{ "c",          centeredmaster}
+	{ "★",		NULL },    /* no layout function means floating behavior */
 };
 
 #define TAGKEYS(KEY,TAG) \
@@ -82,7 +86,7 @@ static const char *termcmd[]  = { "st", "-e", "fish", NULL };
 static Key keys[] = {
     /* modifier                     key        function        argument */
     { MODKEY,                       XK_space,      spawn,          {.v = dmenucmd } },
-    { MODKEY|ShiftMask,             XK_Return, spawn,          {.v = termcmd } },
+    { MODKEY,                       XK_Return, spawn,          {.v = termcmd } },
     { MODKEY,                       XK_b,      togglebar,      {0} },
     { MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
     { MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
@@ -92,10 +96,12 @@ static Key keys[] = {
     { MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
     { MODKEY,                       XK_Return, zoom,           {0} },
     { MODKEY,                       XK_Tab,    view,           {0} },
-    { MODKEY|ShiftMask,             XK_c,      killclient,     {0} },
+    { MODKEY,             XK_q,      killclient,     {0} },
+    { MODKEY|ShiftMask,             XK_l,      lockf,     {0} },
     { MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
     { MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
     { MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
+    { MODKEY|ShiftMask,             XK_m,      setlayout,      {.v = &layouts[4]} },
     { MODKEY,                       XK_p,  setlayout,      {0} },
     { MODKEY|ShiftMask,             XK_p,  togglefloating, {0} },
     { MODKEY,                       XK_0,      view,           {.ui = ~0 } },
