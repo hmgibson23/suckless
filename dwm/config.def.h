@@ -14,13 +14,18 @@ static const unsigned int snap      = 32;       /* snap pixel */
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
 static const int focusonwheel       = 0;
-static const char *fonts[]          = { "monospace:size=10" };
-static const char dmenufont[]       = "monospace:size=10";
+static const char *fonts[]          = { "Inconsolata Nerd Font Mono:size=16:antialias=true:autohint=true" };
+static const char dmenufont[]       = "Inconsolata Nerd Font Mono:size=16:antialias=true:autohint=true";
 static const char col_gray1[]       = "#222222";
 static const char col_gray2[]       = "#444444";
 static const char col_gray3[]       = "#bbbbbb";
 static const char col_gray4[]       = "#eeeeee";
 static const char col_cyan[]        = "#005577";
+static const char *colors[][3]      = {
+	/*               fg         bg         border   */
+	[SchemeNorm] = { col_gray3, col_gray1, col_gray2 },
+	[SchemeSel]  = { col_gray4, col_cyan,  col_cyan  },
+};
 
 /* tagging */
 static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
@@ -74,11 +79,6 @@ static const char colors[NUMCOLORS][ColLast][13] = {
 
 #ifdef SOLARIZED_LIGHT
 static const char colors[NUMCOLORS][ColLast][13] = {
-    /* border    fg         bg */
-    { "#93a1a1", "#93a1a1", "#fdf6e3" },        /* [0]  01 - Client normal */
-    { "#268bd2", "#268bd2", "#fdf6e3" },        /* [1]  02 - Client selected */
-    { "#93a1a1", "#dc322f", "#fdf6e3" },        /* [2]  03 - Client urgent */
-    { "#93a1a1", "#93a1a1", "#fdf6e3" },        /* [3]  04 - Client occupied */
     { "#fdf6e3", "#dc322f", "#fdf6e3" },        /* [4]  05 - Red */
     { "#fdf6e3", "#af8700", "#fdf6e3" },        /* [5]  06 - Yellow */
     { "#fdf6e3", "#859900", "#fdf6e3" },        /* [6]  07 - Green */
@@ -128,27 +128,20 @@ static const char colors[NUMCOLORS][ColLast][17] = {
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 
 #ifdef SOLARIZED_DARK
-static const char *menu[] = { "dmenu_run", "-fn", dmenufont, "-nb", "#002b36", "-nf", "#568e75", "-sb", "#002b36", "-sf", "#268bd2", "-h", "22", NULL };
+static const char *menu[] = { "dmenu_run", "-fn", dmenufont, "-nb", "#002b36",
+    "-nf", "#568e75", "-sb", "#002b36", "-sf", "#268bd2", "-h", "22",
+    "-o", "0.8",
+    "-w", "500",
+    "-x", "650",
+    "-y", "400",
+    "-l", "10",
+    NULL };
 #endif
 
 #ifdef SOLARIZED_LIGHT
 static const char *menu[] = { "dmenu_run", "-fn", dmenufont, "-nb", "#fdf6e3", "-nf", "#93a1a1", "-sb", "#fdf6e3", "-sf", "#268bd2", "-h", "22", NULL };
 #endif
-
-#ifdef GRUVBOX
-static const char *menu[] = { "dmenu_run", "-fn", dmenufont, "-nb", "#282828", "-nf", "#928374", "-sb", "#3c3836", "-sf", "#a89984", "-h", "22", NULL };
-#endif
-
-static const char *termcmd[]  = { "st", "-e", "fish" };
-
-static Key keys[] = {
-	/* modifier                     key        function        argument */
-	{ MODKEY,                       XK_space,      spawn,          {.v = dmenucmd } },
-	{ MODKEY,             XK_Return, spawn,          {.v = termcmd } },
-	{ MODKEY,                       XK_b,      togglebar,      {0} },
-	{ MODKEY,                       XK_j,      focusstack,     {.i = +1 } },
-	{ MODKEY,                       XK_k,      focusstack,     {.i = -1 } },
-	{ MODKEY,                       XK_i,      incnmaster,     {.i = +1 } },
+/* _run -o 0.8 -fn Inconsolata -h 50 -w 500 -x 650 -y 400 -l 10 */
 	{ MODKEY,                       XK_d,      incnmaster,     {.i = -1 } },
 	{ MODKEY,                       XK_h,      setmfact,       {.f = -0.05} },
 	{ MODKEY,                       XK_l,      setmfact,       {.f = +0.05} },
