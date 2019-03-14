@@ -59,7 +59,7 @@
 
 /* enums */
 enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
-enum { SchemeNorm, SchemeSel }; /* color schemes */
+enum { SchemeNorm, SchemeSel, SchemeWarn, SchemeUrgent }; /* color schemes */
 enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
 	NetWMFullscreen, NetActiveWindow, NetWMWindowType,
 	NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
@@ -442,9 +442,15 @@ buttonpress(XEvent *e)
 	}
 	if (ev->window == selmon->barwin) {
 		i = x = 0;
-		do
+		unsigned int occ = 0;
+		for(c = m->clients; c; c = c->next)
+			occ |= c->tags;
+		do {
+			/* do not reserve space for vacant tags */
+			if(!(occ & 1 << i || m->tagset[m->seltags] & 1 << i))
+				continue;
 			x += TEXTW(tags[i]);
-		while (ev->x >= x && ++i < LENGTH(tags));
+		} while (ev->x >= x && ++i < LENGTH(tags));
 		if (i < LENGTH(tags)) {
 			click = ClkTagBar;
 			arg.ui = 1 << i;
@@ -725,13 +731,27 @@ drawbar(Monitor *m)
 	int boxs = drw->fonts->h / 9;
 	int boxw = drw->fonts->h / 6 + 2;
 	unsigned int i, occ = 0, urg = 0;
+	char *ts = stext;
+	char *tp = stext;
+	int tx = 0;
+	char ctmp;
 	Client *c;
 
 	/* draw status first so it can be overdrawn by tags later */
 	if (m == selmon) { /* status is only drawn on selected monitor */
 		drw_setscheme(drw, scheme[SchemeNorm]);
 		sw = TEXTW(stext) - lrpad + 2; /* 2px right padding */
-		drw_text(drw, m->ww - sw, 0, sw, bh, 0, stext, 0);
+		while (1) {
+			if ((unsigned int)*ts > LENGTH(colors)) { ts++; continue ; }
+			ctmp = *ts;
+			*ts = '\0';
+			drw_text(drw, m->ww - sw + tx, 0, sw - tx, bh, 0, tp, 0);
+			tx += TEXTW(tp) -lrpad;
+			if (ctmp == '\0') { break; }
+			drw_setscheme(drw, scheme[(unsigned int)(ctmp-1)]);
+			*ts = ctmp;
+			tp = ++ts;
+		}
 	}
 
 	for (c = m->clients; c; c = c->next) {
@@ -741,6 +761,8 @@ drawbar(Monitor *m)
 	}
 	x = 0;
 	for (i = 0; i < LENGTH(tags); i++) {
+		if (!(occ & 1 << i || m->tagset[m->seltags] & 1 << i))
+			continue;
 		w = TEXTW(tags[i]);
 		drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm]);
 		drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], urg & 1 << i);
