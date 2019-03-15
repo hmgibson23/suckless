@@ -1059,7 +1059,10 @@ manage(Window w, XWindowAttributes *wa)
 	c->h = c->oldh = wa->height;
 	c->oldbw = wa->border_width;
 
-	updatetitle(c);
+	if (bartitle) {
+		updatetitle(c);
+	}
+
 	if (XGetTransientForHint(dpy, w, &trans) && (t = wintoclient(trans))) {
 		c->mon = t->mon;
 		c->tags = t->tags;
@@ -1248,7 +1251,9 @@ propertynotify(XEvent *e)
 				 break;
 		}
 		if (ev->atom == XA_WM_NAME || ev->atom == netatom[NetWMName]) {
+			if (bartitle) {
 			updatetitle(c);
+			}
 			if (c == c->mon->sel)
 				drawbar(c->mon);
 		}
@@ -1596,7 +1601,7 @@ setup(void)
 	drw = drw_create(dpy, screen, root, sw, sh);
 	if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
 		die("no fonts could be loaded.");
-	lrpad = drw->fonts->h;
+	lrpad = drw->fonts->h + hpad;
 	bh = drw->fonts->h + 8;
 	updategeom();
 	/* init atoms */

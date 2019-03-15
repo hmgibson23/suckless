@@ -9,13 +9,19 @@
 static const unsigned int borderpx  = 1;        /* border pixel of windows */
 static const unsigned int snap      = 32;       /* snap pixel */
 static const unsigned int gappx     = 6;
+static const unsigned int hpad      = 2;
 static const int showbar            = 1;        /* 0 means no bar */
 static const int topbar             = 1;        /* 0 means bottom bar */
+static const int bartitle           = 0;
 static const int focusonwheel       = 1;
+
 static const char *fonts[]          = {
-  "-wuncon-siji-medium-r-normal--12-100-75-75-c-80-iso10646-1",
+  "Wuncon Siji=12:antialias=true:autohint=true",
+  "FontAwesome:size=16:antialias=true:autohint=true",
+  "SauceCodePro Nerd Font:size=12:antialias=true:autohint=true",
   "Hack:pixelsize=12:antialias=true:autohint=true" };
 static const char dmenufont[]       = "Hack:pixelsize=12:antialias=true:autohint=true";
+
 static const char col_gray1[]       = "#002b36";
 static const char col_gray2[]       = "#073642";
 static const char col_gray3[]       = "#fdf6e3";
@@ -34,7 +40,7 @@ static const char *colors[][3]      = {
 };
 
 /* tagging */
-static const char *tags[] = { "1", "2", "3", "4", "5", "6", "7", "8", "9" };
+static const char *tags[] = { "", "", "", "", "", "", "", "", "" };
 
 static const Rule rules[] = {
   /* xprop(1):
@@ -64,7 +70,8 @@ static const Layout layouts[] = {
   /* symbol     arrange function */
   { "◰",		tile },    /* first entry is default */
   { "🀱",		monocle },
-  { "c",          centeredmaster},
+  { "g",		gaplessgrid },
+  { "c",                centeredmaster},
   { "★",		NULL },    /* no layout function means floating behavior */
 };
 
@@ -87,11 +94,27 @@ static const char *dmenucmd[] = { "dmenu_run", "-fn", dmenufont, "-nb", col_gray
   "-l", "10",
   "-h", "50",
   NULL };
+
+static const char *altcmd[] = {"rofi", "-show", "drun", NULL};
 static const char *termcmd[]  = { "st", "-e", "fish", NULL };
+static const char *lockcmd[]  = { "slock", NULL };
+static const char *brightnessUp[]  = { "lux", "-a", "5%", NULL };
+static const char *brightnessDown[]  = { "lux", "-s", "5%", NULL };
+static const char *volincr[] = { "amixer", "-q", "set", "Master", "5%-", "unmute", NULL };
+static const char *voldecr[] = { "amixer", "-q", "set", "Master", "5%+", "unmute", NULL };
+/* static const char *voltogg[] = { "amixer", "-q", "set", "Master", "toggle", NULL }; */
+static const char *voltogg[] = { "amixer", "-D", "set", "Master", "1+", "toggle", NULL };
+/* amixer -D pulse set Master 1+ toggle */
 
 static Key keys[] = {
   /* modifier                     key        function        argument */
+  { 0,                  XF86XK_AudioMute,        spawn,                             {.v = voltogg} },
+  { 0,                  XF86XK_AudioRaiseVolume, spawn,                             {.v = volincr} },
+  { 0,                  XF86XK_AudioLowerVolume, spawn,                             {.v = voldecr} },
+  {0,                 XF86XK_MonBrightnessUp,     spawn,          {.v = brightnessUp } },
+  {0,                 XF86XK_MonBrightnessDown,   spawn,          {.v = brightnessDown } },
   { MODKEY,                       XK_space,      spawn,          {.v = dmenucmd } },
+  { MODKEY|ShiftMask,                       XK_space,      spawn,          {.v = altcmd } },
   { MODKEY,                       XK_Return, spawn,          {.v = termcmd } },
   { MODKEY,                       XK_b,      togglebar,      {0} },
   { MODKEY,                       XK_n,      focusstack,     {.i = +1 } },
@@ -103,12 +126,12 @@ static Key keys[] = {
   { MODKEY,                       XK_w, zoom,           {0} },
   { MODKEY,                       XK_Tab,    view,           {0} },
   { MODKEY,             XK_q,      killclient,     {0} },
-  { MODKEY|ShiftMask,             XK_l,      lockf,     {0} },
+  { MODKEY|ShiftMask,             XK_l,      spawn,     {.v = lockcmd} },
   { MODKEY,                       XK_t,      setlayout,      {.v = &layouts[0]} },
-  { MODKEY,                       XK_f,      setlayout,      {.v = &layouts[1]} },
-  { MODKEY,                       XK_m,      setlayout,      {.v = &layouts[2]} },
-  { MODKEY|ShiftMask,             XK_m,      setlayout,      {.v = &layouts[4]} },
-  { MODKEY,                       XK_p,  setlayout,      {0} },
+  /* { MODKEY,                       XK_f,      setlayout,      {.v = &layouts[3]} }, */
+  { MODKEY,                       XK_m,      setlayout,      {.v = &layouts[1]} },
+  { MODKEY|ShiftMask,             XK_m,      setlayout,      {.v = &layouts[2]} },
+  { MODKEY|ShiftMask,             XK_c,      setlayout,      {.v = &layouts[4]} },
   { MODKEY|ShiftMask,             XK_p,  togglefloating, {0} },
   { MODKEY,                       XK_0,      view,           {.ui = ~0 } },
   { MODKEY|ShiftMask,             XK_0,      tag,            {.ui = ~0 } },
