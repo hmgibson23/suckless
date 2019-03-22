@@ -22,7 +22,7 @@ ${OBJ}: config.h config.mk
 config.h:
 	cp config.def.h $@
 
-dwm: ${OBJ}
+dwm: clean ${OBJ}
 	${CC} -o $@ ${OBJ} ${LDFLAGS} ${THEME_FLAGS}
 
 clean:

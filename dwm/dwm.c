@@ -55,6 +55,7 @@
 #define WIDTH(X)                ((X)->w + 2 * (X)->bw + gappx)
 #define HEIGHT(X)               ((X)->h + 2 * (X)->bw + gappx)
 #define TAGMASK                 ((1 << LENGTH(tags)) - 1)
+#define TAGSLENGTH              (LENGTH(tags))
 #define TEXTW(X)                (drw_fontset_getwidth(drw, (X)) + lrpad)
 
 /* enums */
@@ -62,7 +63,7 @@ enum { CurNormal, CurResize, CurMove, CurLast }; /* cursor */
 enum { SchemeNorm, SchemeSel, SchemeWarn, SchemeUrgent }; /* color schemes */
 enum { NetSupported, NetWMName, NetWMState, NetWMCheck,
 	NetWMFullscreen, NetActiveWindow, NetWMWindowType,
-	NetWMWindowTypeDialog, NetClientList, NetLast }; /* EWMH atoms */
+	NetWMWindowTypeDialog, NetClientList, NetDesktopNames, NetDesktopViewport, NetNumberOfDesktops, NetCurrentDesktop, NetLast }; /* EWMH atoms */
 enum { WMProtocols, WMDelete, WMState, WMTakeFocus, WMLast }; /* default atoms */
 enum { ClkTagBar, ClkLtSymbol, ClkStatusText, ClkWinTitle,
 	ClkClientWin, ClkRootWin, ClkLast }; /* clicks */
@@ -198,6 +199,11 @@ static void scan(void);
 static int sendevent(Client *c, Atom proto);
 static void sendmon(Client *c, Monitor *m);
 static void setclientstate(Client *c, long state);
+static void setcurrentdesktop(void);
+static void setdesktopnames(void);
+static void setnumdesktops(void);
+static void setviewport(void);
+static void updatecurrentdesktop(void);
 static void setfocus(Client *c);
 static void setfullscreen(Client *c, int fullscreen);
 static void setlayout(const Arg *arg);
@@ -233,6 +239,7 @@ static Monitor *wintomon(Window w);
 static int xerror(Display *dpy, XErrorEvent *ee);
 static int xerrordummy(Display *dpy, XErrorEvent *ee);
 static int xerrorstart(Display *dpy, XErrorEvent *ee);
+static void update_ws_bools(Monitor *m);
 static void zoom(const Arg *arg);
 static void centeredmaster(Monitor *m);
 static void centeredfloatingmaster(Monitor *m);
@@ -271,7 +278,7 @@ static Window root, wmcheckwin;
 
 /* configuration, allows nested code to access above variables */
 #include "config.h"
-
+#include "dwm_info.c"
 struct Pertag {
 	unsigned int curtag, prevtag; /* current and previous tag */
 	int nmasters[LENGTH(tags) + 1]; /* number of windows in master area */
@@ -727,6 +734,8 @@ dirtomon(int dir)
 	void
 drawbar(Monitor *m)
 {
+	if (!dwm_bar)
+		return;
 	int x, w, sw = 0;
 	int boxs = drw->fonts->h / 9;
 	int boxw = drw->fonts->h / 6 + 2;
@@ -1252,7 +1261,7 @@ propertynotify(XEvent *e)
 		}
 		if (ev->atom == XA_WM_NAME || ev->atom == netatom[NetWMName]) {
 			if (bartitle) {
-			updatetitle(c);
+				updatetitle(c);
 			}
 			if (c == c->mon->sel)
 				drawbar(c->mon);
@@ -1416,6 +1425,7 @@ restack(Monitor *m)
 			}
 	}
 	XSync(dpy, False);
+	update_ws_bools(m);
 	while (XCheckMaskEvent(dpy, EnterWindowMask, &ev));
 }
 
@@ -1489,6 +1499,31 @@ setclientstate(Client *c, long state)
 			PropModeReplace, (unsigned char *)data, 2);
 }
 
+void
+setcurrentdesktop(void){
+	long data[] = { 0 };
+	XChangeProperty(dpy, root, netatom[NetCurrentDesktop], XA_CARDINAL, 32, PropModeReplace, (unsigned char *)data, 1);
+}
+
+void
+setdesktopnames(void){
+	XTextProperty text;
+	Xutf8TextListToTextProperty(dpy, tags, TAGSLENGTH, XUTF8StringStyle, &text);
+	XSetTextProperty(dpy, root, &text, netatom[NetDesktopNames]);
+}
+
+void
+setnumdesktops(void){
+	long data[] = { TAGSLENGTH };
+	XChangeProperty(dpy, root, netatom[NetNumberOfDesktops], XA_CARDINAL, 32, PropModeReplace, (unsigned char *)data, 1);
+}
+
+void
+setviewport(void){
+	long data[] = { 0, 0 };
+	XChangeProperty(dpy, root, netatom[NetDesktopViewport], XA_CARDINAL, 32, PropModeReplace, (unsigned char *)data, 2);
+}
+
 	int
 sendevent(Client *c, Atom proto)
 {
@@ -1557,6 +1592,11 @@ setfullscreen(Client *c, int fullscreen)
 	void
 setlayout(const Arg *arg)
 {
+	for(int i = 0 ; i < NUM_LAYOUTS ; i++ )
+		if (&layouts[i] == arg->v) {
+			set_dwm_info_current_layout(i);
+			break;
+		}
 	if (!arg || !arg->v || arg->v != selmon->lt[selmon->sellt])
 		selmon->sellt = selmon->pertag->sellts[selmon->pertag->curtag] ^= 1;
 	if (arg && arg->v)
@@ -1602,7 +1642,7 @@ setup(void)
 	if (!drw_fontset_create(drw, fonts, LENGTH(fonts)))
 		die("no fonts could be loaded.");
 	lrpad = drw->fonts->h + hpad;
-	bh = drw->fonts->h + 8;
+	bh = drw->fonts->h + gappx + 2;
 	updategeom();
 	/* init atoms */
 	utf8string = XInternAtom(dpy, "UTF8_STRING", False);
@@ -1619,6 +1659,10 @@ setup(void)
 	netatom[NetWMWindowType] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE", False);
 	netatom[NetWMWindowTypeDialog] = XInternAtom(dpy, "_NET_WM_WINDOW_TYPE_DIALOG", False);
 	netatom[NetClientList] = XInternAtom(dpy, "_NET_CLIENT_LIST", False);
+	netatom[NetDesktopViewport] = XInternAtom(dpy, "_NET_DESKTOP_VIEWPORT", False);
+	netatom[NetNumberOfDesktops] = XInternAtom(dpy, "_NET_NUMBER_OF_DESKTOPS", False);
+	netatom[NetCurrentDesktop] = XInternAtom(dpy, "_NET_CURRENT_DESKTOP", False);
+	netatom[NetDesktopNames] = XInternAtom(dpy, "_NET_DESKTOP_NAMES", False);
 	/* init cursors */
 	cursor[CurNormal] = drw_cur_create(drw, XC_left_ptr);
 	cursor[CurResize] = drw_cur_create(drw, XC_sizing);
@@ -1641,6 +1685,10 @@ setup(void)
 	/* EWMH support per view */
 	XChangeProperty(dpy, root, netatom[NetSupported], XA_ATOM, 32,
 			PropModeReplace, (unsigned char *) netatom, NetLast);
+	setnumdesktops();
+	setcurrentdesktop();
+	setdesktopnames();
+	setviewport();
 	XDeleteProperty(dpy, root, netatom[NetClientList]);
 	/* select events */
 	wa.cursor = cursor[CurNormal]->cursor;
@@ -1683,6 +1731,7 @@ showhide(Client *c)
 		showhide(c->snext);
 		XMoveWindow(dpy, c->win, WIDTH(c) * -2, c->y);
 	}
+	updatecurrentdesktop();
 }
 
 	void
@@ -1928,6 +1977,17 @@ updateclientlist()
 					(unsigned char *) &(c->win), 1);
 }
 
+void
+updatecurrentdesktop(void){
+	long rawdata[] = { selmon->tagset[selmon->seltags] };
+	int i=0;
+	while(*rawdata >> i+1){
+		i++;
+	}
+	long data[] = { i };
+	XChangeProperty(dpy, root, netatom[NetCurrentDesktop], XA_CARDINAL, 32, PropModeReplace, (unsigned char *)data, 1);
+}
+
 	int
 updategeom(void)
 {
@@ -2006,6 +2066,23 @@ updategeom(void)
 	return dirty;
 }
 
+void update_ws_bools(Monitor *m) {
+	unsigned int i, occ = 0, urg = 0;
+	Client *c;
+	for (c = m->clients; c; c = c->next) {
+		occ |= c->tags;
+		// TODO: incorporate this urgent into lemonbar
+		if (c->isurgent) urg |= c->tags;
+	}
+	for (i = 0; i < LENGTH(tags); i++) {
+		// true if tag has clients, false if not
+		if (occ & 1 << i) {
+			toggle_dwm_info_ws(i+1, 1);
+		} else {
+			toggle_dwm_info_ws(i+1, 0);
+		}
+	}
+}
 	void
 updatenumlockmask(void)
 {
@@ -2126,11 +2203,13 @@ view(const Arg *arg)
 		selmon->tagset[selmon->seltags] = arg->ui & TAGMASK;
 		selmon->pertag->prevtag = selmon->pertag->curtag;
 
-		if (arg->ui == ~0)
+		if (arg->ui == ~0) {
 			selmon->pertag->curtag = 0;
-		else {
+			set_dwm_info_current_workspace(0);
+		} else {
 			for (i = 0; !(arg->ui & 1 << i); i++) ;
 			selmon->pertag->curtag = i + 1;
+			set_dwm_info_current_workspace(i + 1);
 		}
 	} else {
 		tmptag = selmon->pertag->prevtag;
@@ -2149,6 +2228,7 @@ view(const Arg *arg)
 
 	focus(NULL);
 	arrange(selmon);
+	updatecurrentdesktop();
 }
 
 	Client *
@@ -2248,6 +2328,9 @@ main(int argc, char *argv[])
 	if (pledge("stdio rpath proc exec", NULL) == -1)
 		die("pledge");
 #endif /* __OpenBSD__ */
+	// get the info going
+	init_dwm_info(gappx, BAR_HEIGHT, topbar, NUM_WORKSPACES);
+	FILE *fgappx = fopen("/tmp/dwm_info/gappx", "w"); fprintf(fgappx, "%d", gappx); fclose(fgappx);
 	scan();
 	runAutostart();
 	run();
