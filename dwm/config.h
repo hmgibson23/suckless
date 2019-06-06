@@ -79,6 +79,8 @@ static const Layout layouts[] = {
   { "",                  centeredmaster },
   { "﩯",                  grid },
   { "ﱷ",                  centeredfloatingmaster},
+  { "﬿",                ntile },
+  { "燐",                nbstack },
   { "★",		          NULL },    /* no layout function means floating behavior */
 };
 
@@ -94,6 +96,7 @@ static const Layout layouts[] = {
 /* commands */
 static char dmenumon[2] = "0"; /* component of dmenucmd, manipulated in spawn() */
 static char *dmenucmd[] = { "dmenu_run", "-fn", dmenufont, "-nb", col_gray1, "-nf", col_gray3, "-sb", col_cyan, "-sf", col_gray4,
+  "-z",
   "-o", "0.8",
   "-w", "500",
   "-y", "400",
