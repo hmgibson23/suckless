@@ -81,6 +81,8 @@ void redraw(void);
 void draw(void);
 
 void printscreen(const Arg *);
+void kscrolldown(const Arg *);
+void kscrollup(const Arg *);
 void printsel(const Arg *);
 void sendbreak(const Arg *);
 void toggleprinter(const Arg *);

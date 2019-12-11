@@ -165,6 +165,8 @@ static Shortcut shortcuts[] = {
 	{ ShiftMask,            XK_Insert,      selpaste,       {.i =  0} },
 	{ TERMMOD,              XK_Num_Lock,    numlock,        {.i =  0} },
 	{ TERMMOD,              XK_Escape,      keyboard_select,{ 0 } },
+	{ ShiftMask,            XK_e,     kscrollup,      {.i = -1}  },
+	{ ShiftMask,            XK_n,   kscrolldown,    {.i = -1}  },
 };
 
 /*
